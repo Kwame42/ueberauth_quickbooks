@@ -26,7 +26,8 @@ defmodule UeberauthQuickbooks.MixProject do
   defp deps do
     [
       {:oauth2, "~> 1.0 or ~> 2.0"},
-      {:ueberauth, "~> 0.7.0"}
+      {:ueberauth, "~> 0.7.0"},
+      {:mock, "~> 0.3", only: :test}
     ]
   end
   

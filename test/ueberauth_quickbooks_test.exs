@@ -1,8 +1,4 @@
 defmodule UeberauthQuickbooksTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest UeberauthQuickbooks
-
-  test "greets the world" do
-    assert UeberauthQuickbooks.hello() == :world
-  end
 end
