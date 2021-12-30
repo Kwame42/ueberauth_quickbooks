@@ -121,6 +121,10 @@ config :ueberauth, Ueberauth,
 
 To guard against client-side request modification, it's important to still check the domain in `info.urls[:website]` within the `Ueberauth.Auth` struct if you want to limit sign-in to a specific domain.
 
+## Thanks
+
+This code is mostly a copy of [ueberauth_google](https://github.com/ueberauth/ueberauth_google) and modified in consequence.
+
 ## Copyright and License
 
 Copyright (c) 2021 Kwame Yamgnane
