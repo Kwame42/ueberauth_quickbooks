@@ -25,9 +25,9 @@ defmodule Ueberauth.Strategy.QuickBooks.OAuth do
 
   These options are only useful for usage outside the normal callback phase of Ueberauth.
   """
-  def client(opts \\ []) do
+  def client(opts1 \\ []) do
     config = Application.get_env(:ueberauth, __MODULE__, [])
-    opts = @defaults |> Keyword.merge(opts) |> Keyword.merge(config) |> resolve_values()
+    opts = @defaults |> Keyword.merge(opts1) |> Keyword.merge(config) |> resolve_values()
     json_library = Ueberauth.json_library()
 
     OAuth2.Client.new(opts)
@@ -39,19 +39,19 @@ defmodule Ueberauth.Strategy.QuickBooks.OAuth do
   """
   def authorize_url!(params \\ [], opts \\ []) do
     opts
-    |> client
+    |> client()
     |> OAuth2.Client.authorize_url!(params)
   end
 
   def get(token, url, headers \\ [], opts \\ []) do
     [token: token]
-    |> client
+    |> client()
     |> put_param("client_secret", client().client_secret)
     |> OAuth2.Client.get(url, headers, opts)
   end
 
   def get_access_token(params \\ [], opts \\ []) do
-    case opts |> client |> OAuth2.Client.get_token(params) do
+    case opts |> client() |> OAuth2.Client.get_token(params) do
       {:error, %{body: %{"error" => error, "error_description" => description}}} ->
         {:error, {error, description}}
 
@@ -72,9 +72,12 @@ defmodule Ueberauth.Strategy.QuickBooks.OAuth do
 
   def get_token(client, params, headers) do
     client
-    |> put_param("client_secret", client.client_secret)
     |> put_header("Accept", "application/json")
-    |> OAuth2.Strategy.AuthCode.get_token(params, headers)
+    |> put_param(:grant_type, "authorization_code")
+    |> put_param(:redirect_uri, client.redirect_uri)
+    |> basic_auth()
+    |> merge_params(params)
+    |> put_headers(headers)
   end
 
   defp resolve_values(list) do

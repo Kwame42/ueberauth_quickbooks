@@ -40,8 +40,8 @@ defmodule Ueberauth.Strategy.Quickbooks do
   """
   def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
     params = [code: code]
-    opts = oauth_client_options_from_conn(conn)
-
+    opts = oauth_client_options_from_conn(conn) ++ code_options_from_conn(conn)
+    
     case Ueberauth.Strategy.QuickBooks.OAuth.get_access_token(params, opts) do
       {:ok, token} ->
         fetch_user(conn, token)
@@ -169,6 +169,15 @@ defmodule Ueberauth.Strategy.Quickbooks do
     if option(conn, key), do: Keyword.put(opts, key, option(conn, key)), else: opts
   end
 
+  defp code_options_from_conn(conn) do
+    with {:ok, params} <- Map.fetch(conn, :params),
+	 {:ok, code} <- Map.fetch(params, "code") do
+      [code: code]
+    else
+      _ -> []
+    end
+  end
+  
   defp oauth_client_options_from_conn(conn) do
     base_options = [redirect_uri: callback_url(conn)]
     request_options = conn.private[:ueberauth_request_options].options
