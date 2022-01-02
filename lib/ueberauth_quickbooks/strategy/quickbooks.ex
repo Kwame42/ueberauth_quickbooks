@@ -36,25 +36,24 @@ defmodule Ueberauth.Strategy.Quickbooks do
   @doc """
   Handles the callback from QuickBooks.
   """
-  def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
+  def handle_callback!(%Plug.Conn{params: %{"code" => code, "realmId" => realm_id}} = conn) do
     params = [code: code]
-    opts = oauth_client_options_from_conn(conn) ++ code_options_from_conn(conn)
-    
+    opts = oauth_client_options_from_conn(conn)
     case Ueberauth.Strategy.QuickBooks.OAuth.get_access_token(params, opts) do
-      {:ok, token} -> put_private(conn, :quickbooks_token, token)
+      {:ok, token} ->
+	token = add_realm_id(token, realm_id)
+	put_private(conn, :quickbooks_token, token)
       {:error, {error_code, error_description}} -> set_errors!(conn, [error(error_code, error_description)])
     end
   end
 
   @doc false
-  def handle_callback!(conn) do
-    set_errors!(conn, [error("missing_code", "No code received")])
-  end
+  def handle_callback!(conn), 
+    do: set_errors!(conn, [error("missing_code", "No code received")])
 
   @doc false
   def handle_cleanup!(conn) do
     conn
-    |> put_private(:quickbooks_user, nil)
     |> put_private(:quickbooks_token, nil)
   end
 
@@ -74,6 +73,9 @@ defmodule Ueberauth.Strategy.Quickbooks do
     }
   end
 
+  defp add_realm_id(token, realm_id),
+    do: Map.update!(token, :other_params, fn other_params -> Map.put(other_params, "realm_id", realm_id) end)
+  
   defp with_param(opts, key, conn) do
     if value = conn.params[to_string(key)], do: Keyword.put(opts, key, value), else: opts
   end
@@ -82,15 +84,6 @@ defmodule Ueberauth.Strategy.Quickbooks do
     if option(conn, key), do: Keyword.put(opts, key, option(conn, key)), else: opts
   end
 
-  defp code_options_from_conn(conn) do
-    with {:ok, params} <- Map.fetch(conn, :params),
-	 {:ok, code} <- Map.fetch(params, "code") do
-      [code: code]
-    else
-      _ -> []
-    end
-  end
-  
   defp oauth_client_options_from_conn(conn) do
     base_options = [redirect_uri: callback_url(conn)]
     request_options = conn.private[:ueberauth_request_options].options
