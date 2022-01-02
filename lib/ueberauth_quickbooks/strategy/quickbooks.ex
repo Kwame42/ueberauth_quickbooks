@@ -73,6 +73,10 @@ defmodule Ueberauth.Strategy.Quickbooks do
     }
   end
 
+  def refresh_token([refresh_token: refresh_token]) do
+    Ueberauth.Strategy.QuickBooks.OAuth.refresh_access_token([refresh_token: refresh_token])
+  end
+  
   defp add_realm_id(token, realm_id),
     do: Map.update!(token, :other_params, fn other_params -> Map.put(other_params, "realm_id", realm_id) end)
   

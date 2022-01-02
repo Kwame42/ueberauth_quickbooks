@@ -25,9 +25,9 @@ defmodule Ueberauth.Strategy.QuickBooks.OAuth do
 
   These options are only useful for usage outside the normal callback phase of Ueberauth.
   """
-  def client(opts1 \\ []) do
+  def client(opts \\ []) do
     config = Application.get_env(:ueberauth, __MODULE__, [])
-    opts = @defaults |> Keyword.merge(opts1) |> Keyword.merge(config) |> resolve_values()
+    opts = @defaults |> Keyword.merge(opts) |> Keyword.merge(config) |> resolve_values()
     json_library = Ueberauth.json_library()
 
     OAuth2.Client.new(opts)
@@ -79,6 +79,29 @@ defmodule Ueberauth.Strategy.QuickBooks.OAuth do
     |> merge_params(params)
     |> put_headers(headers)
   end
+
+  defp build_refresh_params(client, params) do
+    client
+    |> OAuth2.Strategy.Refresh.get_token(params, opts)
+    |> put_header("Accept", "application/json")
+    |> put_param(:grant_type, "refresh_token")
+    |> Map.put(:token, %{refresh_token: Keyword.get(params, :refresh_token)})
+  end
+  
+  def refresh_access_token(params \\ [], opts \\ []) do
+    case OAuth2.Client.refresh_token(opts |> client() |> build_refresh_params(params), params) do
+      {:error, %{body: %{"error" => error, "error_description" => description}}} ->
+        {:error, {error, description}}
+
+      {:ok, %{token: %{access_token: nil} = token}} ->
+        %{"error" => error, "error_description" => description} = token.other_params
+        {:error, {error, description}}
+
+      {:ok, %{token: token}} ->
+        {:ok, token}
+    end
+  end
+  
 
   defp resolve_values(list) do
     for {key, value} <- list do
